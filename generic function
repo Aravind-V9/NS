@@ -1,0 +1,313 @@
+package GenericFunctions;
+
+
+import io.github.bonigarcia.wdm.WebDriverManager;
+
+import org.jboss.aerogear.security.otp.Totp;
+import org.junit.Assert;
+import org.openqa.selenium.By;
+import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+//import org.testng.Assert;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.sql.*;
+import java.time.Duration;
+import java.util.Base64;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+
+
+public class GenericFunctions {
+    public static WebDriver driver;
+    // Statement object
+
+    public static Connection DB_connection = null;
+
+    public static Statement stmt;
+    public static String str_StoreFilePath = "OutputHotfile/";
+    // DB variables
+    public static String DB_USER;
+    public static String DB_PASSWORD;
+    public static String DB_URL;
+    public static ResultSet resultset;
+
+    public String getValueFrom_Properties(String PropertyName) throws IOException {
+        Properties cofig = new Properties();
+        FileInputStream fis = new FileInputStream("C:\\Users\\902303\\OneDrive - Cognizant\\Automation\\Network_SourcingBDD-cucumber\\target\\generated-sources\\extend.properties.txt");
+        cofig.load(fis);
+        return cofig.getProperty(PropertyName);
+    }
+
+
+    public WebDriver InitiateDriver() throws IOException, InterruptedException {
+//        System.setProperty("webdriver.chrome.driver", "C:\\Users\\2053557\\OneDrive - Cognizant\\Documents\\PPF- SS\\chromedriver-win64\\chromedriver-win64\\chromedriver.exe");
+        WebDriverManager.chromedriver().setup();
+
+
+        //WebDriverManager.chromedriver().setup();
+        //options.setBinary("C:\\Users\\2053557\\OneDrive - Cognizant\\Documents\\PPF- SS\\chrome-win64\\chrome-win64\\chrome.exe");
+
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--remote-allow-origins=*");
+        driver = new ChromeDriver(options);
+        driver.manage().window().maximize();
+        driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+       // Thread.sleep(5000);
+        driver.navigate().to(getValueFrom_Properties("url"));
+        return driver;
+
+    }
+
+    public WebDriver LaunchAndLoginNetworkSourcingUI(WebDriver driver) throws IOException, InterruptedException {
+        driver.findElement(WebElements.UserName).sendKeys(getValueFrom_Properties("username_" + System.getProperty("user.name")));
+        driver.findElement(WebElements.UserNameNextButton).click();
+        Thread.sleep(7000);
+        driver.findElement(WebElements.Password).sendKeys(DecryptPassword(getValueFrom_Properties("password_" + System.getProperty("user.name"))));
+        Thread.sleep(2000);
+        driver.findElement(WebElements.PasswordNextButton).click();
+
+        Thread.sleep(3000);
+        if (!driver.findElements(WebElements.TryAnotherway).isEmpty()) {
+            driver.findElement(WebElements.TryAnotherway).click();
+        }
+
+        Thread.sleep(3000);
+        WebElement AuthenticatorAppElement = driver.findElement(WebElements.Authentication);
+        if (AuthenticatorAppElement.isDisplayed()) {
+            AuthenticatorAppElement.click();
+        }
+        Thread.sleep(5000);
+        WebElement txt_EnteringOTP = driver.findElement(By.xpath("//*[@id='totpPin']"));
+        txt_EnteringOTP.sendKeys(new Totp(System.getenv("SECRET_KEY")).now().toString());
+        driver.manage().timeouts().implicitlyWait(20, TimeUnit.SECONDS);
+        driver.findElement(By.xpath("//*[@id='totpNext']")).click();
+        Thread.sleep(1000);
+        //if (checkElementPresent(By.xpath("//input[@id='approveCb']"))){
+        System.out.println("Inside the approveOnce loop");
+        driver.findElement(WebElements.ApproveOnce).click();
+        Thread.sleep(100);
+        driver.findElement(WebElements.ContinueLogin).click();
+        //clickOnElement(By.xpath("//input[@id='approve'][@value='Continue']"));
+        // }
+        return driver;
+    }
+
+    public WebDriver getDriver() {
+        return driver;
+    }
+    public WebElement findElement(By byLocator) {
+        WebElement element = (new WebDriverWait(driver, 5)).until(ExpectedConditions.presenceOfElementLocated(byLocator));
+        return element;
+    }
+    public void clickOnElement(By byLocator) {
+
+        try {
+            waitForElementToBeClickable(byLocator);
+            WebElement element = findElement(byLocator);
+            element.click();
+        } catch (Exception e) {
+            System.out.println("Exception on click element" + e);
+            Assert.fail("Element not found for the By locator:" + byLocator);
+
+        }
+    }
+    public void sendKeys(By byLocator, CharSequence keysToSend) {
+
+        try {
+
+            WebElement element = findElement(byLocator);
+            element.sendKeys(keysToSend);
+        } catch (Exception e) {
+
+            Assert.fail("Element not found for the By locator:" + byLocator);
+        }
+    }
+
+    public String getText(By byLocator) {
+
+        String text = null;
+        try {
+
+            WebElement element = findElement(byLocator);
+            text = element.getText();
+        } catch (Exception e) {
+
+            Assert.fail("Element not found for the By locator:" + byLocator);
+
+        }
+        return text;
+    }
+
+    public String DecryptPassword(String Password) {
+        byte[] decodeBytes = Base64.getDecoder().decode(Password.getBytes());
+        return new String(decodeBytes);
+    }
+    public void moveToElement(By byLocator) {
+
+        try {
+            WebElement element = findElement(byLocator);
+            Actions action = new Actions(driver); action.moveToElement(element).perform();
+        } catch (Exception e) {
+            System.out.println("Exception on click element" + e);
+            Assert.fail("Element not found for the By locator:" + byLocator);
+
+        }
+    }
+    public void Clear(By byLocator) {
+
+        try {
+
+            WebElement element = findElement(byLocator);
+            element.clear();
+
+        } catch (Exception e) {
+
+            Assert.fail("Element not found for the By locator:" + byLocator);
+
+        }
+    }
+
+    public void SetupDBConnection() {
+        try {
+
+            DB_URL = getValueFrom_Properties("ConnectionURL");
+            DB_USER = getValueFrom_Properties("NSDBUserName");
+            DB_PASSWORD = getValueFrom_Properties("NSDBPassword");
+            // Get connection to DB
+            DB_connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            // Statement object to send the SQL statement to the Database
+            stmt = DB_connection.createStatement();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public ResultSet ExecuteQuery(String query) {
+        String count = null;
+        try {
+
+            resultset = stmt.executeQuery(query);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return resultset;
+    }
+
+    public void CloseConnection() throws SQLException {
+        // Close DB connection
+        if (DB_connection != null) {
+            DB_connection.close();
+        }
+    }
+    public List<WebElement> findElements(By byLocator) {
+
+        List<WebElement> element = null;
+        try {
+            element = driver.findElements(byLocator);
+            Assert.assertTrue(!element.isEmpty());
+
+        } catch (Exception e) {
+            Assert.fail("Element not found for the By locator:" + byLocator);
+        }
+        return element;
+    }
+
+
+    public int getFindElementsSize(By byLocator) {
+        return findElements(byLocator).size();
+
+    }
+
+    /*public void printEntireTable() {
+        for (int i = 1; i <= getFindElementsSize(WebElements.SearchResultRows); i++) {
+            for (int j = 1; j <= getFindElementsSize(WebElements.SearchResultCol); j++) {
+                System.out.println(getCellValue(i, j));
+            }
+        }
+    }*/
+
+
+    public void waitForElementToBeClickable(By byLocator)
+    {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        wait.until(ExpectedConditions.elementToBeClickable(findElement(byLocator)));
+    }
+    public void waitForElementsToBeVisible(By byLocator)
+    {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(byLocator));
+    }
+    public void waitForProgressBarToDisappear(By byLocator)
+    {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
+        wait.until(ExpectedConditions.attributeToBe(byLocator,"aria-hidden","true"));
+    }
+
+    public void waitForSpinner() throws InterruptedException {
+//        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+//        wait.until(ExpectedConditions.invisibilityOfElementLocated(WebElements.spinner));
+
+        System.out.println(System.currentTimeMillis());
+        System.out.println("After clicking the search");
+        // Thread.sleep(7000);
+try {
+    Boolean isVisible = true;
+
+    while (isVisible.equals(true)) {
+        System.out.println(System.currentTimeMillis());
+        Thread.sleep(1000);
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(1));
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("identifierId")));
+
+        isVisible = driver.findElement(WebElements.tableProgressBar).isDisplayed();
+    }
+}
+
+
+
+catch(Exception e){
+System.out.println("Spinner disappeared"+ System.currentTimeMillis());
+    }
+    }
+    public void selectDropdownOption(String value)
+    {
+       // waitForElementsToBeVisible(WebElements.dropDownOptions);
+        waitForDropdownOptionsToBeLoaded();
+        List<WebElement> dropdownElements= findElements(WebElements.dropDownOptions);
+       System.out.println(dropdownElements.size());
+        System.out.println("entering loop option");
+        for(int i=0;i<dropdownElements.size();i++)
+         {
+             if(dropdownElements.get(i).getText().equals(value))
+             {
+                 System.out.println("clicking option");
+                 System.out.println(dropdownElements.get(i).getText());
+                  dropdownElements.get(i).click();
+                  break;
+             }
+         }
+    }
+
+    private void waitForDropdownOptionsToBeLoaded() {
+
+        while(true){
+            try{
+                waitForElementsToBeVisible(WebElements.dropDownOptions);
+                break;
+            }catch(StaleElementReferenceException e){
+
+            }
+        }
+    }
+}
