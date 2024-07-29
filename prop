@@ -1,0 +1,42 @@
+#extent.properties
+extent.reporter.spark.start=true
+extent.reporter.spark.out=Report/ColleagueDiscountAutomation.html
+#Adding folder name and non repeating pattern
+basefolder.name=test-output/SparkReport
+basefolder.datetimepattern=d-MMM-YY HH-mm-ss
+
+extent.reporter.spark.config=src/test/resources/extent-config.xml
+screenshot.dir=test-output/
+screenshot.rel.path=../
+systeminfo.os= Windows
+systeminfo.user= ETL Automation Team
+systeminfo.build=0.1
+systeminfo.AppName= Network sourcing
+
+
+url=https://network-sourcing-preprod.npapps.wickes.co.uk/
+
+welcomeMessage=Welcome to Network Sourcing App, Aravind V !
+googleAuthKey=gp2v drzx pjdj fdq3 vrhd xsdi g6xk fixw
+username_902303userpassword_902303=QXJ2aW1lc3NpQDk5
+SearchByName=a
+SearchByEmail=1582505051
+SearchByEmpID=353536
+SearchResultCols=7
+SearchResultRows=20
+#Database Connection Data
+ConnectionURL=jdbc:mysql://wickes-dcapps-etl-preprod-network-sourcing-rds-mysql.ctdle1i6zxs5.eu-west-1.rds.amazonaws.com:3306/network_sourcing
+
+NSDBUserName=nsadmin
+NSDBPassword=Tnc0Mk5lOUpkU0Fw
+DatabaseName=network_sourcing
+
+TransmodeCapacityBaseQuery = SELECT Case When t.sourceSupplierId IS NOT NULL THEN TRIM(Leading '0' from t.sourceSupplierId) When t.sourceLocationId IS NOT NULL THEN TRIM(Leading '0' from t.sourceLocationId) END AS source,t.destinationLocationId As destination, Case WHEN t.isPlaceholder =1 THEN CONCAT(tc.transmodeId,' (PLC)') ELSE tc.transmodeId END AS transmodeId,u.uomName,CASE tc.isActive WHEN 1 THEN 'Active' ELSE 'Inactive' END as isActive,FORMAT(tc.minCap,0) AS minCap,FORMAT(tc.maxCap,0) AS maxCap FROM transmode_capacity tc join transmode t on t.transmodeId=tc.transmodeId join uom u on u.uomId=tc.uomId where tc.transmodeId Not Like ('DC2S%')
+TransmodeCapacityCountBaseQuery = SELECT Count(*) FROM transmode_capacity tc join transmode t on t.transmodeId=tc.transmodeId join uom u on u.uomId=tc.uomId where tc.transmodeId Not Like ('DC2S%')
+
+
+
+
+
+
+
