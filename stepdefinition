@@ -1,0 +1,383 @@
+package TransmodeCapacity;
+
+import GenericFunctions.GenericFunctions;
+import GenericFunctions.WebElements;
+import io.cucumber.datatable.DataTable;
+import io.cucumber.java.en.And;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
+import org.openqa.selenium.Keys;
+import org.openqa.selenium.WebElement;
+import org.testng.Assert;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.*;
+
+public class transmodeCapacity extends GenericFunctions {
+
+    public static List<Map<String, String>> filters;
+    public static List<Map<String, String>> fieldsAndValues;
+    @Given("User is in the Network sourcing HomePage")
+    public void user_is_in_the_network_sourcing_home_page() throws SQLException {
+
+
+        Assert.assertTrue(findElement(WebElements.Welcomepage).getText().contains("Welcome to Network Sourcing App"));
+    }
+
+
+    @When("User clicks on the Transmode Capacity Management on the left menu")
+    public void user_clicks_on_the_transmode_capacity_management_on_the_left_menu() {
+
+        clickOnElement(WebElements.leftMenuIcon);
+        clickOnElement(WebElements.transmodeCapacityTab);
+    }
+
+    @Then("User should be on the Transmode Capacity Management Page")
+    public void user_should_be_on_the_transmode_capacity_management_page() throws InterruptedException {
+
+
+        Thread.sleep(3000);
+        Assert.assertEquals(findElement(WebElements.pageName).getText(), "Transmode Capacity Management");
+    }
+
+    @Given("User is in the Transmode Capacity Management Page")
+    public void userIsInTheTransmodeCapacityManagementPage() {
+
+    }
+
+    @When("User applies the following filters")
+    public void userApplyTheFollowingFilters(List<Map<String, String>> filterslist) {
+
+        clickOnElement(WebElements.refreshBtn);
+
+        filters = filterslist;
+        for (int i = 0; i < filters.size(); i++) {
+            Map<String, String> filter = filters.get(i);
+            String field = filter.get("field_name");
+            String value = filter.get("value");
+
+            if (value == null || value.trim().isEmpty() || (!field.equals("Source") && !field.equals("Destination") && !field.equals("Transmode")) && !field.equals("UOM Name") && !field.equals("Status")) {
+                continue;
+            }
+            applyFilter(field, value);
+        }
+    }
+
+    @Then("The search results should be filtered by the applied criteria")
+    public void theSearchResultsShouldBeFilteredByTheAppliedCriteria() throws InterruptedException, SQLException {
+
+        Thread.sleep(5000);
+        System.out.println("Count = " + getRecordsCount());
+        String dbCount = getDBCount();
+        System.out.println("DB Count = " + dbCount);
+        Assert.assertEquals(dbCount, getRecordsCount());
+
+    }
+
+    private String getDBCount() throws SQLException {
+        SetupDBConnection();
+        ExecuteQuery(buildQuery(filters, "TransmodeCapacityCountBaseQuery"));
+        String count = null;
+        while (resultset.next()) {
+            count = resultset.getString(1);
+        }
+        CloseConnection();
+        return count;
+    }
+
+    private List<String> getDBData() throws SQLException, IOException {
+        SetupDBConnection();
+        ExecuteQuery(buildQuery(filters, getValueFrom_Properties("TransmodeCapacityBaseQuery")));
+        List<String> DBdata = new ArrayList<>();
+        while (resultset.next()) {
+            String source = resultset.getString("source");
+            String destination = resultset.getString("destination");
+            String transmodeId = resultset.getString("transmodeId");
+            String uomName = resultset.getString("uomName");
+            String minCap = resultset.getString("minCap");
+            String maxCap = resultset.getString("maxCap");
+            String isActive = resultset.getString("isActive");
+            String rowString=source+" "+destination+" "+transmodeId+" "+ uomName+" "+isActive + " "+minCap +" "+maxCap;
+            System.out.println("DB");
+            System.out.println(rowString);
+            DBdata.add(rowString);
+        }
+        CloseConnection();
+        return DBdata;
+    }
+    public String getRecordsCount() {
+
+        String itemsPerPageText = getText(WebElements.totalRecordsCount);
+        String[] totalRecordsCount = itemsPerPageText.split("of");
+        return totalRecordsCount[1].trim();
+    }
+
+    public void applyFilter(String criteria, String value) {
+        switch (criteria) {
+            case "Source":
+                sendKeys(WebElements.sourceFilter, value);
+                break;
+            case "Destination":
+                sendKeys(WebElements.destinationFilter, value);
+                break;
+            case "Transmode":
+                System.out.println(" transmode");
+                clickOnElement(WebElements.transmodeDropdownFilter);
+                waitForProgressBarToDisappear(WebElements.dropDownProgressBarFilter);
+                selectDropdownOption(value);
+                break;
+            case "UOM Name":
+                System.out.println("UOM");
+                clickOnElement(WebElements.uomDropdownFilter);
+                selectDropdownOption(value);
+                break;
+            case "Status":
+                clickOnElement(WebElements.statusDropdownFilter);
+                selectDropdownOption(value);
+                break;
+            default:
+                Assert.fail("Filter criteria not available");
+                break;
+        }
+    }
+
+    @And("User clicks on search button")
+    public void userClicksOnSearchButton() {
+
+        clickOnElement(WebElements.searchBtn);
+
+    }
+
+    @When("User clicks on add transmode capacity")
+    public void userClicksOnAddTransmodeCapacity() {
+
+        clickOnElement(WebElements.addTransmodeCapacityBtn);
+
+    }
+
+    @And("User enters all the necessary fields")
+    public void userEntersAllTheNecessaryFields(List<Map<String, String>> fields) throws InterruptedException {
+       // clickOnElement(WebElements.refreshBtn);
+        fieldsAndValues=fields;
+        for (int i = 0; i < fieldsAndValues.size(); i++) {
+            Map<String, String> filter = fieldsAndValues.get(i);
+            String field = filter.get("field_name");
+            String value = filter.get("value");
+
+            if (value == null || value.trim().isEmpty() ) {
+                //|| (!field.equals("Source") && !field.equals("Destination") && !field.equals("Transmode")) && !field.equals("uom") && !field.equals("status")
+                continue;
+            }
+            enterValueinField(field, value);
+        }
+
+
+    }
+
+    public void enterValueinField(String field, String value) throws InterruptedException {
+        switch (field) {
+            case "Source":
+                sendKeys(WebElements.sourceTxtBox, value);
+                break;
+            case "Destination":
+                sendKeys(WebElements.destinationTxtBox, value);
+                break;
+            case "Transmode":
+
+                waitForProgressBarToDisappear(WebElements.dropDownProgressBarAdd);
+                clickOnElement(WebElements.transmodeDropdown);
+                waitForProgressBarToDisappear(WebElements.dropDownProgressBarAdd);
+                clickOnElement(WebElements.transmodeDropdown);
+                selectDropdownOption(value);
+                break;
+            case "UOM Name":
+                clickOnElement(WebElements.uomDropdown);
+                selectDropdownOption(value);
+                break;
+            case "Status":
+                clickOnElement(WebElements.statusDropdown);
+                selectDropdownOption(value);
+                break;
+            case "Min MOQ":
+                findElement(WebElements.minMoqTxtBox).clear();
+                sendKeys(WebElements.minMoqTxtBox, value);
+                break;
+            case "Max MOQ":
+                clickOnElement(WebElements.maxMoqTxtBox);
+                sendKeys(WebElements.maxMoqTxtBox, Keys.CONTROL + "a");
+                sendKeys(WebElements.maxMoqTxtBox, Keys.DELETE);
+                sendKeys(WebElements.maxMoqTxtBox, value);
+                break;
+            default:
+                Assert.fail("Field is not available");
+                break;
+        }
+
+    }
+
+    @Then("The new transmode capacity record should be added")
+    public void theNewTransmodeCapacityRecordShouldBeAdded() throws InterruptedException {
+
+        Thread.sleep(2000);
+        userApplyTheFollowingFilters(fieldsAndValues);
+        userClicksOnSearchButton();
+        Thread.sleep(5000);
+        Assert.assertEquals(getInputDataInMap(fieldsAndValues), getUIDataInMap());
+    }
+
+    @And("User clicks on add button")
+    public void userClicksOnAddButton() {
+
+        clickOnElement(WebElements.addBtn);
+        clickOnElement(WebElements.continueBtn);
+
+    }
+
+    @And("User enters all the necessary fieldss")
+    public void userEntersAllTheNecessaryFields() {
+
+
+    }
+
+    @And("User updates the transmode Capacity")
+    public void userUpdatesTheTransmodeCapacity(List<Map<String, String>> fields) throws InterruptedException {
+
+        userEntersAllTheNecessaryFields(fields);
+        clickOnElement(WebElements.updateBtn);
+    }
+
+    @Then("The new transmode capacity record should be updated")
+    public void theNewTransmodeCapacityRecordShouldBeUpdated() {
+
+
+    }
+
+
+
+
+    public static String getValuesForDB(String value) {
+        if (value == null) {
+            return null;
+        } else {
+            switch (value) {
+                case "source":
+                    return "sourceLocationID OR sourceSupplierId ";
+                case "destination":
+                    return "destinationLocationId";
+                case "transmode":
+                    return "transmodeId";
+                case "uom":
+                    return "uomName";
+                case "status":
+                    return "isActive";
+                case "Active":
+                    return "1";
+                case "InActive":
+                    return "0";
+                default:
+                    return value;
+            }
+        }
+    }
+
+
+    public static String buildQuery(List<Map<String, String>> filtersList, String baseQuery) {
+
+        StringBuilder queryBuilder = new StringBuilder(baseQuery);
+
+        for (int i = 0; i < filtersList.size(); i++) {
+            Map<String, String> filter = filtersList.get(i);
+            String columnName = getValuesForDB(filter.get("filter_criteria"));
+            String value = getValuesForDB(filter.get("filter_value"));
+            if (columnName.equals("sourceLocationID OR sourceSupplierId ") && value != null) {
+                value = String.format("%05d", Integer.parseInt(value));
+            }
+
+            if (!(value == null)) {
+                queryBuilder.append(" AND").append(" ").append(columnName).append(" = '").append(value).append("'");
+            }
+        }
+        System.out.println(queryBuilder.toString());
+        return queryBuilder.toString();
+    }
+
+    @Then("The search results should be same as the DB results")
+    public void theSearchResultsShouldBeSameAsTheDBResults() throws SQLException, IOException, InterruptedException {
+
+
+        Thread.sleep(5000);
+        Assert.assertTrue(compareLists(getUIData(),getDBData()));
+    }
+
+    public static List<String> getUIData() {
+
+        List<WebElement> rows = driver.findElements(WebElements.tableRows);
+        List<String> ResultData = new ArrayList<>();
+        for (WebElement row : rows) {
+            System.out.println("UI");
+            System.out.println(row.getText());
+            ResultData.add(row.getText());
+        }
+        return ResultData;
+    }
+
+    public static Map<String,String> getUIDataInMap() {
+
+        List<WebElement> headers = driver.findElements(WebElements.headerColumnNames);
+        List<WebElement> values = driver.findElements(WebElements.recordValues);
+        Map<String,String> uiData = new HashMap<>();
+
+        for (int i=0;i<headers.size()-1;i++) {
+            String header = headers.get(i).getText();
+            String value = values.get(i).getText();
+
+            if (header.equals("Actions")) {
+                continue;
+            }
+            System.out.println(header + ":"+ value);
+            uiData.put(header,value);
+        }
+        return uiData;
+    }
+    public static Map<String,String> getInputDataInMap(List<Map<String, String>> input) {
+        Map<String, String> inputData=new HashMap<>();
+
+        for (int i = 0; i < input.size(); i++) {
+            Map<String, String> filter = input.get(i);
+            String field = filter.get("field_name");
+            String value = filter.get("value");
+
+            if (value == null || value.trim().isEmpty()) {
+                continue;
+            }
+            System.out.println(" Input - "+field + ":"+ value);
+            inputData.put(field,value);
+        }
+
+        return inputData;
+    }
+
+    public static boolean compareLists(List<String> List1, List<String> List2){
+        Set<String> set1=new HashSet<>(List1);
+        Set<String> set2=new HashSet<>(List2);
+        return set1.equals(set2);
+    }
+
+    @Then("User verifies the success message is displayed")
+    public void userVerifiesTheSuccessMessageIsDisplayed() {
+
+        waitForElementsToBeVisible(WebElements.alertMsg);
+        String actualMessage =findElement(WebElements.alertMsg).getText();
+        Assert.assertEquals(actualMessage,"Transmode added successfully");
+      }
+
+    @And("User clicks on edit button")
+    public void userClicksOnEditButton() throws InterruptedException {
+
+        Thread.sleep(3000);
+        moveToElement(WebElements.editBtn);
+        clickOnElement(WebElements.editBtn);
+    }
+}
